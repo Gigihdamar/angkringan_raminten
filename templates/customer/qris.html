@@ -1,0 +1,85 @@
+{% extends "customer/base.html" %}
+{% block title %}Scan QRIS - Angkringan Raminten{% endblock %}
+
+{% block content %}
+<div class="page-dark">
+<div class="container py-4">
+  <div class="qris-shell text-center">
+    <h2 class="section-title mb-1">Scan QRIS untuk Membayar</h2>
+    <p class="text-muted mb-4">Buka aplikasi e-wallet atau m-banking, lalu scan kode di bawah ini.</p>
+
+    <div class="qr-frame mb-3">
+      <span class="qr-corner tl"></span>
+      <span class="qr-corner br"></span>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data={{ payment.qr_data | urlencode }}"
+           alt="QR Code Simulasi QRIS" loading="lazy" width="240" height="240">
+    </div>
+    <p class="text-muted small mb-4">*QR simulasi untuk keperluan demo UAS, bukan payment gateway asli.</p>
+
+    <div class="countdown-ring mb-4" id="countdownRing">
+      <span class="ring-dot"><span class="ring-time" id="countdown">05:00</span></span>
+      <span class="ring-label">Selesaikan pembayaran sebelum QR kadaluarsa</span>
+    </div>
+
+    <div class="ticket-card p-3 mb-4 text-start">
+      <div class="pay-info-row"><span class="label">Nomor Order</span><span class="value">{{ order.order_number }}</span></div>
+      <div class="pay-info-row"><span class="label">Nomor Meja</span><span class="value">Meja {{ order.table_number }}</span></div>
+      <div class="pay-info-row"><span class="label">Total Pembayaran</span><span class="value">Rp{{ '{:,.0f}'.format(order.total_price) }}</span></div>
+      <div class="pay-info-row"><span class="label">Status Pembayaran</span><span class="value"><span class="badge-status menunggu">Belum Dibayar</span></span></div>
+    </div>
+
+    <form id="confirmForm" action="{{ url_for('customer.payment_confirm', order_id=order.id) }}" method="POST">
+      <button type="button" id="btnSudahBayar" class="btn btn-pesan w-100 mb-2">
+        <i class="bi bi-check2-circle"></i> Saya Sudah Membayar
+      </button>
+    </form>
+    <a href="{{ url_for('customer.payment_method', order_id=order.id) }}" class="btn btn-outline-secondary w-100">
+      &larr; Ganti Metode Pembayaran
+    </a>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Countdown timer 5 menit sesuai requirement simulasi QRIS
+const TOTAL_SECONDS = 5 * 60;
+let remaining = TOTAL_SECONDS;
+const countdownEl = document.getElementById("countdown");
+const ringDot = document.querySelector("#countdownRing .ring-dot");
+const btnSudahBayar = document.getElementById("btnSudahBayar");
+
+function paintRing() {
+  const pct = 1 - (remaining / TOTAL_SECONDS);
+  const deg = Math.round(pct * 360);
+  ringDot.style.background = `conic-gradient(var(--orange-500) ${deg}deg, var(--cream-200) ${deg}deg)`;
+}
+
+const timer = setInterval(() => {
+  remaining -= 1;
+  paintRing();
+  if (remaining <= 0) {
+    clearInterval(timer);
+    countdownEl.textContent = "00:00";
+    btnSudahBayar.disabled = true;
+    btnSudahBayar.innerHTML = "QR Kadaluarsa";
+    alert("QR Code sudah kadaluarsa. Silakan ulangi pembayaran.");
+    window.location.href = "{{ url_for('customer.payment_method', order_id=order.id) }}";
+    return;
+  }
+  const m = String(Math.floor(remaining / 60)).padStart(2, "0");
+  const s = String(remaining % 60).padStart(2, "0");
+  countdownEl.textContent = `${m}:${s}`;
+}, 1000);
+paintRing();
+
+// Popup konfirmasi nominal sebelum status diubah menjadi LUNAS
+btnSudahBayar.addEventListener("click", () => {
+  const ok = confirm("Apakah nominal pembayaran sudah sesuai dengan Rp{{ '{:,.0f}'.format(order.total_price) }}?");
+  if (ok) {
+    document.getElementById("confirmForm").submit();
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "customer/base.html" %}
+{% block title %}Pembayaran Berhasil - Angkringan Raminten{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+
+      <div class="success-badge-ring"><div class="inner"><i class="bi bi-check-lg"></i></div></div>
+      <div class="text-center mb-4">
+        <h2 class="section-title mb-1">Pembayaran Berhasil</h2>
+        <p class="text-muted">Pesanan Anda sudah diteruskan ke dapur Angkringan Raminten.</p>
+      </div>
+
+      <div class="ticket-card p-4 mb-3">
+        <div class="row g-3">
+          <div class="col-sm-6"><div class="text-muted small">Nomor Order</div><div class="fw-bold">{{ order.order_number }}</div></div>
+          <div class="col-sm-6"><div class="text-muted small">Nomor Meja</div><div class="fw-bold">Meja {{ order.table_number }}</div></div>
+          <div class="col-sm-6"><div class="text-muted small">Tanggal</div><div class="fw-bold">{{ order.paid_at.strftime('%d-%m-%Y %H:%M:%S') if order.paid_at else '-' }}</div></div>
+          <div class="col-sm-6"><div class="text-muted small">Metode Pembayaran</div><div class="fw-bold">{{ order.payment_method }}</div></div>
+          <div class="col-sm-6"><div class="text-muted small">Status</div><div><span class="badge-status siap">{{ order.payment_status }}</span></div></div>
+          <div class="col-sm-6"><div class="text-muted small">No. Transaksi</div><div class="fw-bold">{{ transaction.transaction_id if transaction else '-' }}</div></div>
+        </div>
+
+        <hr class="ticket-divider">
+
+        <div class="d-flex flex-column">
+          {% for item in order.items %}
+          <div class="order-line-item">
+            <div class="d-flex align-items-center gap-3">
+              <div class="order-line-qty">{{ item.quantity }}x</div>
+              <div class="fw-bold">{{ item.menu_item.name }}</div>
+            </div>
+            <span class="fw-bold">Rp{{ '{:,.0f}'.format(item.subtotal) }}</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        <hr class="ticket-divider">
+        <div class="pay-info-row"><span class="label">Subtotal</span><span class="value">Rp{{ '{:,.0f}'.format(order.total_price) }}</span></div>
+        <div class="pay-info-row"><span class="label">PPN (opsional)</span><span class="value">Rp0</span></div>
+      </div>
+
+      <div class="total-box mb-4">
+        <div class="total-grand"><span>Total</span><span class="amount">Rp{{ '{:,.0f}'.format(order.total_price) }}</span></div>
+      </div>
+
+      <div class="text-center mb-4">
+        <div class="qr-frame">
+          <span class="qr-corner tl"></span>
+          <span class="qr-corner br"></span>
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data={{ order.order_number | urlencode }}"
+               alt="QR Order" loading="lazy" width="140" height="140">
+        </div>
+        <p class="text-muted small mt-2 mb-0">QR Order &mdash; tunjukkan ke pegawai jika diperlukan.</p>
+      </div>
+
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('customer.receipt_pdf', order_id=order.id) }}" class="btn btn-pesan flex-grow-1">
+          <i class="bi bi-download"></i> Download PDF
+        </a>
+        <a href="{{ url_for('customer.status', order_id=order.id) }}" class="btn btn-outline-secondary flex-grow-1">
+          <i class="bi bi-broadcast"></i> Lihat Status Pesanan
+        </a>
+      </div>
+      <a href="{{ url_for('customer.home') }}" class="btn btn-outline-secondary w-100 mt-2">
+        <i class="bi bi-house"></i> Kembali ke Home
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

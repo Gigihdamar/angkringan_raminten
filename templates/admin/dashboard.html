@@ -1,0 +1,145 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard - Angkringan Raminten{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-4"><span class="live-dot"></span>&nbsp; Statistik diperbarui otomatis setiap 5 detik.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card stat-card--kpi tone-coklat text-center">
+      <div class="stat-icon"><i class="bi bi-receipt-cutoff"></i></div>
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-label">Total Pesanan Hari Ini</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card stat-card--kpi tone-gold text-center">
+      <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+      <div class="stat-value" id="stat-baru">0</div>
+      <div class="stat-label">Pesanan Baru</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card stat-card--kpi tone-ink text-center">
+      <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
+      <div class="stat-value" id="stat-belum-bayar">0</div>
+      <div class="stat-label">Belum Dibayar</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card stat-card--kpi tone-leaf text-center">
+      <div class="stat-icon"><i class="bi bi-cash-coin"></i></div>
+      <div class="stat-value" id="stat-revenue" style="font-size:1.4rem;">Rp0</div>
+      <div class="stat-label">Pendapatan Hari Ini</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card text-center">
+      <div class="stat-value" id="stat-menunggu">0</div>
+      <div class="stat-label">Menunggu Diproses</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card text-center">
+      <div class="stat-value" id="stat-dibuat">0</div>
+      <div class="stat-label">Sedang Dibuat</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card text-center">
+      <div class="stat-value" id="stat-siap">0</div>
+      <div class="stat-label">Siap Disajikan</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card text-center">
+      <div class="stat-value" id="stat-selesai">0</div>
+      <div class="stat-label">Selesai</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="stat-card h-100">
+      <h6 class="mb-3">Grafik Status Pesanan Hari Ini</h6>
+      <canvas id="statusChart" height="110"></canvas>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="stat-card h-100">
+      <h6 class="mb-3">Menu Terlaris Hari Ini</h6>
+      <div id="menu-terlaris" class="text-center py-4 text-muted">Belum ada data.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const ctx = document.getElementById("statusChart");
+const statusChart = new Chart(ctx, {
+  type: "bar",
+  data: {
+    labels: ["Menunggu", "Sedang Dibuat", "Siap Disajikan", "Selesai"],
+    datasets: [{
+      label: "Jumlah Pesanan",
+      data: [0, 0, 0, 0],
+      backgroundColor: ["#C99A2E", "#5A8FD9", "#4E7A46", "#4A2C17"],
+      borderRadius: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+  }
+});
+
+async function refreshDashboard() {
+  try {
+    const res = await fetch("{{ url_for('admin.api_stats') }}");
+    if (!res.ok) return;
+    const data = await res.json();
+
+    document.getElementById("stat-total").textContent = data.total_orders_today;
+    document.getElementById("stat-baru").textContent = data.pesanan_baru;
+    document.getElementById("stat-belum-bayar").textContent = data.belum_dibayar;
+    document.getElementById("stat-menunggu").textContent = data.counts["Menunggu Diproses"] || 0;
+    document.getElementById("stat-dibuat").textContent = data.counts["Sedang Dibuat"] || 0;
+    document.getElementById("stat-siap").textContent = data.counts["Siap Disajikan"] || 0;
+    document.getElementById("stat-selesai").textContent = data.counts["Selesai"] || 0;
+    document.getElementById("stat-revenue").textContent = "Rp" + Number(data.revenue_today).toLocaleString("id-ID");
+
+    const terlarisEl = document.getElementById("menu-terlaris");
+    if (data.menu_terlaris) {
+      terlarisEl.innerHTML = `
+        <div style="font-size:2.2rem;">🏆</div>
+        <div class="fw-bold fs-5">${data.menu_terlaris.name}</div>
+        <div class="text-muted">${data.menu_terlaris.qty} porsi terjual</div>
+      `;
+      terlarisEl.classList.remove("text-muted", "py-4");
+    } else {
+      terlarisEl.innerHTML = "Belum ada data.";
+    }
+
+    statusChart.data.datasets[0].data = [
+      data.counts["Menunggu Diproses"] || 0,
+      data.counts["Sedang Dibuat"] || 0,
+      data.counts["Siap Disajikan"] || 0,
+      data.counts["Selesai"] || 0,
+    ];
+    statusChart.update();
+  } catch (err) {
+    console.error("Gagal memuat statistik dashboard:", err);
+  }
+}
+
+refreshDashboard();
+setInterval(refreshDashboard, 5000); // Auto refresh setiap 5 detik
+</script>
+{% endblock %}

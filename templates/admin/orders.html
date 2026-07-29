@@ -1,0 +1,81 @@
+{% extends "admin/base.html" %}
+{% block title %}Kelola Pesanan - Angkringan Raminten{% endblock %}
+{% block page_title %}Kelola Pesanan{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-2 flex-wrap mb-3">
+  <a href="{{ url_for('admin.orders', status='Semua') }}"
+     class="category-pill {{ 'active' if status_filter=='Semua' }}">Semua</a>
+  {% for s in status_flow %}
+  <a href="{{ url_for('admin.orders', status=s) }}"
+     class="category-pill {{ 'active' if status_filter==s }}">{{ s }}</a>
+  {% endfor %}
+</div>
+
+<div class="stat-card p-0 table-responsive-card">
+  <div class="table-responsive">
+  <table class="table mb-0 align-middle">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Meja</th>
+        <th>Pelanggan</th>
+        <th>Menu</th>
+        <th>Total</th>
+        <th>Pembayaran</th>
+        <th>Status</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody id="orders-tbody">
+      {% for o in orders %}
+      <tr class="order-row" data-href="{{ url_for('admin.order_detail', order_id=o.id) }}">
+        <td class="fw-bold" style="color:var(--coklat-700);">#{{ o.id }}</td>
+        <td>Meja {{ o.table_number }}</td>
+        <td>{{ o.customer_name }}</td>
+        <td>{{ o.items|length }} item</td>
+        <td class="fw-bold">Rp{{ '{:,.0f}'.format(o.total_price) }}</td>
+        <td><span class="badge-status siap">{{ o.payment_status }}</span></td>
+        <td>
+          <span class="badge-status {{ {'Menunggu Diproses':'menunggu','Sedang Dibuat':'dibuat','Siap Disajikan':'siap','Selesai':'selesai'}[o.status] }}">
+            {{ o.status }}
+          </span>
+        </td>
+        <td class="d-flex gap-1">
+          <a href="{{ url_for('admin.order_detail', order_id=o.id) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-eye"></i>
+          </a>
+          <form action="{{ url_for('admin.order_delete', order_id=o.id) }}" method="POST"
+                onsubmit="return confirm('Hapus pesanan #{{ o.id }}?');" onclick="event.stopPropagation();">
+            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="text-center text-muted py-4">Belum ada pesanan.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Auto refresh daftar pesanan setiap 5 detik agar pesanan baru dari
+// pelanggan langsung terlihat tanpa perlu reload manual.
+setInterval(() => {
+  window.location.reload();
+}, 5000);
+
+// Baris pesanan bisa langsung di-tap untuk membuka detail, supaya di layar
+// mobile (yang perlu geser tabel ke kanan untuk menemukan tombol Aksi)
+// tetap bisa membuka detail pesanan dengan mudah.
+document.querySelectorAll('#orders-tbody tr.order-row').forEach((row) => {
+  row.addEventListener('click', (e) => {
+    if (e.target.closest('a, button, form')) return;
+    window.location.href = row.dataset.href;
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "customer/base.html" %}
+{% block title %}Ringkasan Pesanan - Angkringan Raminten{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <h2 class="section-title mb-1 text-center">Ringkasan Pesanan</h2>
+      <p class="text-muted mb-4 text-center">
+        <span class="qris-order-chip"><i class="bi bi-receipt"></i> {{ order.order_number }}</span>
+        &nbsp; <span class="text-muted">Meja {{ order.table_number }}</span>
+      </p>
+
+      <div class="ticket-card p-4 mb-3">
+        <h6 class="text-uppercase small fw-bold text-muted mb-3" style="letter-spacing:.06em;">Detail Pesanan</h6>
+        <div class="d-flex flex-column mb-2">
+          {% for item in order.items %}
+          <div class="order-line-item">
+            <div class="d-flex align-items-center gap-3">
+              <div class="order-line-qty">{{ item.quantity }}x</div>
+              <div class="fw-bold">{{ item.menu_item.name }}</div>
+            </div>
+            <span class="fw-bold">Rp{{ '{:,.0f}'.format(item.subtotal) }}</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if order.note %}
+        <hr class="ticket-divider">
+        <p class="text-muted small mb-0"><i class="bi bi-sticky"></i> <strong>Catatan:</strong> {{ order.note }}</p>
+        {% endif %}
+
+        <hr class="ticket-divider">
+        <div class="pay-info-row"><span class="label">Nomor Meja</span><span class="value">Meja {{ order.table_number }}</span></div>
+        <div class="pay-info-row"><span class="label">Nama Pelanggan</span><span class="value">{{ order.customer_name }}</span></div>
+        {% if order.customer_phone %}
+        <div class="pay-info-row"><span class="label">Nomor Telepon</span><span class="value">{{ order.customer_phone }}</span></div>
+        {% endif %}
+      </div>
+
+      <div class="total-box mb-4">
+        <div class="total-grand">
+          <span>Total Pembayaran</span>
+          <span class="amount">Rp{{ '{:,.0f}'.format(order.total_price) }}</span>
+        </div>
+      </div>
+
+      <a href="{{ url_for('customer.payment_method', order_id=order.id) }}" class="btn btn-pesan w-100">
+        <i class="bi bi-qr-code"></i> Lanjut Pembayaran
+      </a>
+      <a href="{{ url_for('customer.cart') }}" class="btn btn-outline-secondary w-100 mt-2">
+        &larr; Kembali ke Keranjang
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

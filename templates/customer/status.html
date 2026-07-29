@@ -1,0 +1,125 @@
+{% extends "customer/base.html" %}
+{% block title %}Status Pesanan - Angkringan Raminten{% endblock %}
+
+{% block content %}
+<div class="page-dark">
+<div class="container py-4" style="max-width:640px;">
+
+  <!-- ======================= SUCCESS VIEW (Selesai) ======================= -->
+  <div id="successView" class="ticket-card success-panel {{ '' if order.status == 'Selesai' else 'd-none' }}">
+    <div class="success-badge-ring"><div class="inner"><i class="bi bi-check-lg"></i></div></div>
+    <h3 class="section-title mb-2">Pesanan Selesai!</h3>
+    <p class="text-muted mb-4">Pesanan <strong>{{ order.order_number }}</strong> sudah siap.<br>Silakan ambil di kasir ya 🏮</p>
+    <div class="d-flex gap-2 justify-content-center flex-wrap">
+      <a href="{{ url_for('customer.receipt', order_id=order.id) }}" class="btn btn-pesan">
+        <i class="bi bi-receipt"></i> Lihat Struk
+      </a>
+      <a href="{{ url_for('customer.menu') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-repeat"></i> Pesan Lagi
+      </a>
+    </div>
+  </div>
+
+  <!-- ======================= TRACKING VIEW ======================= -->
+  <div id="trackingView" class="{{ 'd-none' if order.status == 'Selesai' else '' }}">
+    <div class="status-hero-card mb-4">
+      <div class="status-hero-top">
+        <div>
+          <div class="text-uppercase small opacity-75" style="letter-spacing:.08em;">Status Pesanan</div>
+          <div class="status-hero-order">{{ order.order_number }}</div>
+        </div>
+        <span class="badge-status {{ ['menunggu','dibuat','siap','selesai'][order.status_index] }} fs-6" id="status-text">
+          {{ order.status }}
+        </span>
+      </div>
+      <div class="status-hero-meta">
+        <div><div class="meta-label">Meja</div><div class="meta-value" id="s-table">{{ order.table_number }}</div></div>
+        <div><div class="meta-label">Nama</div><div class="meta-value" id="s-name">{{ order.customer_name }}</div></div>
+        <div><div class="meta-label">Total</div><div class="meta-value" id="s-total">Rp{{ '{:,.0f}'.format(order.total_price) }}</div></div>
+      </div>
+      <div class="mt-3 small d-flex align-items-center gap-2 opacity-75">
+        <span class="live-dot"></span> Live &mdash; halaman ini otomatis diperbarui setiap 5 detik
+      </div>
+    </div>
+
+    <div class="order-items-mini mb-4">
+      <h6 class="text-uppercase small fw-bold text-muted mb-3" style="letter-spacing:.06em;">Detail Pesanan</h6>
+      <div id="s-items">
+        {% for item in order.items %}
+        <div class="order-line-item">
+          <div class="d-flex align-items-center gap-3">
+            <div class="order-line-qty">{{ item.quantity }}x</div>
+            <div class="fw-bold">{{ item.menu_item.name }}</div>
+          </div>
+          <span class="fw-bold">Rp{{ '{:,.0f}'.format(item.subtotal) }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="ticket-card p-4">
+      <h6 class="text-uppercase small fw-bold text-muted mb-4" style="letter-spacing:.06em;">Progres Pesanan</h6>
+      {% set steps = [
+        ('Menunggu Diproses', 'bi-hourglass-split'),
+        ('Sedang Dibuat', 'bi-fire'),
+        ('Siap Disajikan', 'bi-bag-check'),
+        ('Selesai', 'bi-emoji-smile')
+      ] %}
+      <ul class="timeline-vert" id="status-track">
+        {% for label, icon in steps %}
+        <li class="{{ 'done' if order.status_index > loop.index0 else ('active' if order.status_index == loop.index0 else '') }}" data-step="{{ loop.index0 }}">
+          <span class="t-dot"><i class="bi {{ icon }}"></i></span>
+          <div class="t-title">{{ label }}</div>
+          {% if order.status_index == loop.index0 %}<div class="t-time">Sedang berlangsung</div>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const ORDER_ID = {{ order.id }};
+const STEP_ICONS = ["bi-hourglass-split", "bi-fire", "bi-bag-check", "bi-emoji-smile"];
+const BADGE_CLASS = ["menunggu", "dibuat", "siap", "selesai"];
+
+function showSuccessView() {
+  document.getElementById("trackingView").classList.add("d-none");
+  document.getElementById("successView").classList.remove("d-none");
+}
+
+async function refreshStatus() {
+  try {
+    const res = await fetch(`/api/order/${ORDER_ID}/status`);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (data.status === "Selesai") {
+      showSuccessView();
+      return;
+    }
+
+    document.querySelectorAll("#status-track li").forEach((el) => {
+      const step = parseInt(el.dataset.step, 10);
+      el.classList.toggle("done", step < data.status_index);
+      el.classList.toggle("active", step === data.status_index);
+    });
+
+    const badge = document.getElementById("status-text");
+    badge.textContent = data.status;
+    badge.className = "badge-status fs-6 " + BADGE_CLASS[data.status_index];
+
+    document.getElementById("s-total").textContent = "Rp" + Number(data.total_price).toLocaleString("id-ID");
+  } catch (err) {
+    console.error("Gagal memuat status pesanan:", err);
+  }
+}
+
+// Auto refresh setiap 5 detik sesuai requirement
+setInterval(refreshStatus, 5000);
+</script>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends "customer/base.html" %}
+{% block title %}Checkout - Angkringan Raminten{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h2 class="section-title mb-1">Keranjang Pesanan</h2>
+  <p class="text-muted mb-4">Periksa kembali pesananmu sebelum lanjut ke pembayaran.</p>
+
+  {% if not cart %}
+  <div class="text-center py-5">
+    <div style="font-size:2.6rem;">🏮</div>
+    <p class="text-muted fs-5 mt-2">Keranjang masih kosong.</p>
+    <a href="{{ url_for('customer.menu') }}" class="btn btn-pesan">Lihat Menu</a>
+  </div>
+  {% else %}
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="ticket-card p-4">
+        <h6 class="text-uppercase small fw-bold text-muted mb-3" style="letter-spacing:.06em;">Item Pesanan</h6>
+        <div class="d-flex flex-column">
+          {% for row in cart %}
+          <div class="order-line-item">
+            <div class="d-flex align-items-center gap-3">
+              <div class="order-line-qty">{{ row.quantity }}x</div>
+              <div>
+                <div class="fw-bold">{{ row.name }}</div>
+                <div class="text-muted small">Rp{{ '{:,.0f}'.format(row.price) }} / item</div>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+              <form action="{{ url_for('customer.cart_update') }}" method="POST" class="qty-stepper">
+                <input type="hidden" name="menu_id" value="{{ row.menu_id }}">
+                <button type="button" class="qty-minus" aria-label="Kurangi">&minus;</button>
+                <input type="number" name="quantity" value="{{ row.quantity }}" min="0" class="qty-input" readonly>
+                <button type="button" class="qty-plus" aria-label="Tambah">&plus;</button>
+              </form>
+              <span class="fw-bold" style="min-width:92px; text-align:right;">Rp{{ '{:,.0f}'.format(row.price * row.quantity) }}</span>
+              <a href="{{ url_for('customer.cart_remove', menu_id=row.menu_id) }}" class="btn btn-sm btn-outline-danger" title="Hapus item">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <a href="{{ url_for('customer.menu') }}" class="btn btn-outline-secondary btn-sm mt-3">
+          <i class="bi bi-plus-lg"></i> Tambah Pesanan Lagi
+        </a>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="summary-sticky">
+        <div class="ticket-card p-4">
+          <h6 class="text-uppercase small fw-bold text-muted mb-3" style="letter-spacing:.06em;">Ringkasan Pesanan</h6>
+
+          <div class="table-select-card mb-3 d-flex align-items-center gap-3">
+            <div class="icon-wrap" style="width:40px;height:40px;background:var(--orange-400); flex-shrink:0;">
+              <i class="bi bi-signpost-split text-white"></i>
+            </div>
+            <div class="flex-grow-1">
+              <label class="form-label small fw-semibold text-muted mb-0">Nomor Meja</label>
+              <select name="table_number" form="checkoutForm" class="form-select" required>
+                {% for t in tables %}
+                <option value="{{ t.number }}">Meja {{ t.number }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <hr class="ticket-divider">
+
+          <div class="total-box total-box--flat mb-3">
+            <div class="total-row"><span>Jumlah Item</span><span>{{ cart|sum(attribute='quantity') }} item</span></div>
+            <div class="total-grand">
+              <span>Total Pembayaran</span>
+              <span class="amount">Rp{{ '{:,.0f}'.format(total) }}</span>
+            </div>
+          </div>
+
+          <form id="checkoutForm" action="{{ url_for('customer.checkout') }}" method="POST">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-muted">Nama Pelanggan <span class="text-danger">*</span></label>
+              <input type="text" name="customer_name" id="customerNameInput" class="form-control" placeholder="Nama Anda" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-muted">Nomor Telepon <span class="text-danger">*</span></label>
+              <input type="tel" name="customer_phone" id="customerPhoneInput" class="form-control" placeholder="Contoh: 0812-3456-7890" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-muted">Catatan</label>
+              <textarea name="note" class="form-control" rows="2" placeholder="Contoh: tidak pedas"></textarea>
+            </div>
+            <button type="submit" class="btn btn-pesan w-100" id="checkoutSubmitBtn" disabled>
+              <i class="bi bi-arrow-right-circle"></i> Lanjut Pembayaran
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const nameInput = document.getElementById("customerNameInput");
+  const phoneInput = document.getElementById("customerPhoneInput");
+  const submitBtn = document.getElementById("checkoutSubmitBtn");
+  if (!nameInput || !phoneInput || !submitBtn) return;
+
+  function toggleSubmit() {
+    const filled = nameInput.value.trim().length > 0 && phoneInput.value.trim().length > 0;
+    submitBtn.disabled = !filled;
+  }
+
+  nameInput.addEventListener("input", toggleSubmit);
+  phoneInput.addEventListener("input", toggleSubmit);
+  toggleSubmit();
+})();
+</script>
+{% endblock %}

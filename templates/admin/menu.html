@@ -1,0 +1,139 @@
+{% extends "admin/base.html" %}
+{% block title %}Kelola Menu - Angkringan Raminten{% endblock %}
+{% block page_title %}Kelola Menu{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <p class="text-muted mb-0">Tambah, edit, atau hapus menu Angkringan Raminten.</p>
+  <button class="btn btn-pesan" data-bs-toggle="modal" data-bs-target="#addMenuModal">
+    <i class="bi bi-plus-lg"></i> Tambah Menu
+  </button>
+</div>
+
+<div class="stat-card p-0 table-responsive-card">
+  <div class="table-responsive">
+  <table class="table mb-0 align-middle">
+    <thead>
+      <tr><th>Nama</th><th>Kategori</th><th>Harga</th><th>Status</th><th>Aksi</th></tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ item.category }}</td>
+        <td>Rp{{ '{:,.0f}'.format(item.price) }}</td>
+        <td>
+          {% if item.is_available %}
+          <span class="badge-status siap">Tersedia</span>
+          {% else %}
+          <span class="badge-status menunggu">Nonaktif</span>
+          {% endif %}
+        </td>
+        <td class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editMenuModal{{ item.id }}">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <form action="{{ url_for('admin.menu_delete', item_id=item.id) }}" method="POST"
+                onsubmit="return confirm('Hapus menu {{ item.name }}?');">
+            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+
+      <!-- Modal Edit -->
+      <div class="modal fade" id="editMenuModal{{ item.id }}" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form action="{{ url_for('admin.menu_edit', item_id=item.id) }}" method="POST" enctype="multipart/form-data">
+              <div class="modal-header">
+                <h5 class="modal-title">Edit {{ item.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label">Nama Menu</label>
+                  <input type="text" name="name" class="form-control" value="{{ item.name }}" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Harga</label>
+                  <input type="number" step="100" name="price" class="form-control" value="{{ item.price }}" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Kategori</label>
+                  <select name="category" class="form-select">
+                    {% for c in ['Makanan', 'Minuman', 'Cemilan'] %}
+                    <option value="{{ c }}" {{ 'selected' if item.category==c }}>{{ c }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Deskripsi</label>
+                  <textarea name="description" class="form-control" rows="2">{{ item.description }}</textarea>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Gambar Menu</label>
+                  <input type="file" name="image" class="form-control">
+                </div>
+                <div class="form-check">
+                  <input type="checkbox" name="is_available" class="form-check-input" id="avail{{ item.id }}" {{ 'checked' if item.is_available }}>
+                  <label class="form-check-label" for="avail{{ item.id }}">Tersedia</label>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" class="btn btn-pesan">Simpan Perubahan</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <tr><td colspan="5" class="text-center text-muted py-4">Belum ada menu.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- Modal Tambah -->
+<div class="modal fade" id="addMenuModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="{{ url_for('admin.menu_add') }}" method="POST" enctype="multipart/form-data">
+        <div class="modal-header">
+          <h5 class="modal-title">Tambah Menu Baru</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Nama Menu</label>
+            <input type="text" name="name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Harga</label>
+            <input type="number" step="100" name="price" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Kategori</label>
+            <select name="category" class="form-select">
+              <option value="Makanan">Makanan</option>
+              <option value="Minuman">Minuman</option>
+              <option value="Cemilan">Cemilan</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Deskripsi</label>
+            <textarea name="description" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Gambar Menu</label>
+            <input type="file" name="image" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-pesan">Tambah Menu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

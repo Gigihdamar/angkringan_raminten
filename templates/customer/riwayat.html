@@ -1,0 +1,64 @@
+{% extends "customer/base.html" %}
+{% block title %}Riwayat Pesanan - Angkringan Raminten{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:760px;">
+  <h2 class="section-title mb-1">Riwayat Pesanan</h2>
+  <p class="text-muted mb-4">Daftar pesanan yang pernah Anda buat di perangkat ini.</p>
+
+  {% if not orders %}
+  <div class="text-center py-5">
+    <div style="font-size:2.6rem;">🧾</div>
+    <p class="text-muted fs-5 mt-2">Belum ada riwayat pesanan.</p>
+    <a href="{{ url_for('customer.menu') }}" class="btn btn-pesan">Lihat Menu</a>
+  </div>
+  {% else %}
+  {% set bulan = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'] %}
+  <div class="d-flex flex-column gap-3">
+    {% for o in orders %}
+    <div class="history-card">
+      <div class="history-date-chip">
+        <div class="d">{{ o.created_at.strftime('%d') }}</div>
+        <div class="m">{{ bulan[o.created_at.month] }}</div>
+      </div>
+      <div class="history-body">
+        <div class="history-top-row">
+          <div>
+            <div class="history-order-no">{{ o.order_number }}</div>
+            <div class="text-muted small">Meja {{ o.table_number }} &middot; {{ o.created_at.strftime('%H:%M') }}</div>
+          </div>
+          <div class="text-end">
+            <div class="history-total">Rp{{ '{:,.0f}'.format(o.total_price) }}</div>
+            <div class="d-flex gap-1 justify-content-end mt-1 flex-wrap">
+              <span class="badge-status {{ 'siap' if o.payment_status == 'Lunas' else 'menunggu' }}">{{ o.payment_status }}</span>
+              <span class="badge-status {{ {'Menunggu Diproses':'menunggu','Sedang Dibuat':'dibuat','Siap Disajikan':'siap','Selesai':'selesai'}[o.status] }}">{{ o.status }}</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="history-menu-summary mb-0">
+          {{ o.items|map(attribute='menu_item.name')|join(', ') }}
+          <span class="text-muted">&middot; {{ o.items|length }} item</span>
+        </p>
+
+        <div class="history-actions">
+          {% if o.is_paid %}
+          <a href="{{ url_for('customer.status', order_id=o.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-eye"></i> Detail
+          </a>
+          <a href="{{ url_for('customer.receipt_pdf', order_id=o.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-download"></i> Download Struk
+          </a>
+          {% else %}
+          <a href="{{ url_for('customer.order_summary', order_id=o.id) }}" class="btn btn-pesan">
+            <i class="bi bi-arrow-right-circle"></i> Lanjutkan Pembayaran
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "admin/base.html" %}
+{% block title %}Laporan - Angkringan Raminten{% endblock %}
+{% block page_title %}Laporan{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-2 mb-4">
+  {% for p, label in [('harian','Harian'), ('mingguan','Mingguan'), ('bulanan','Bulanan')] %}
+  <a href="{{ url_for('admin.report', period=p) }}" class="category-pill {{ 'active' if period==p }}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="stat-card stat-card--kpi tone-gold text-center">
+      <div class="stat-icon"><i class="bi bi-receipt"></i></div>
+      <div class="stat-value">{{ total_transaksi }}</div>
+      <div class="stat-label">Total Transaksi</div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="stat-card stat-card--kpi tone-leaf text-center">
+      <div class="stat-icon"><i class="bi bi-cash-coin"></i></div>
+      <div class="stat-value">Rp{{ '{:,.0f}'.format(total_pendapatan) }}</div>
+      <div class="stat-label">Total Pendapatan</div>
+    </div>
+  </div>
+</div>
+
+<div class="stat-card">
+  <h6 class="mb-3">Menu Terlaris</h6>
+  {% if best_sellers %}
+  <div class="table-responsive">
+  <table class="table mb-0">
+    <thead><tr><th>#</th><th>Menu</th><th>Terjual</th></tr></thead>
+    <tbody>
+      {% for menu_item, qty in best_sellers %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ menu_item.name if menu_item else '-' }}</td>
+        <td>{{ qty }} porsi</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0">Belum ada data transaksi pada periode ini.</p>
+  {% endif %}
+</div>
+{% endblock %}
