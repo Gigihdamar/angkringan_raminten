@@ -27,17 +27,31 @@ def home():
 
 @customer_bp.route("/menu")
 def menu():
-    # Menu sekarang ditampilkan terkelompok per kategori dalam satu halaman
-    # (seperti referensi desain), bukan lagi difilter via reload halaman.
+    # Menu ditampilkan terkelompok per kategori dalam satu halaman
     category_order = ["Makanan", "Minuman", "Cemilan"]
     sections = []
-    for cat in category_order:
-        items = (MenuItem.query
-                 .filter_by(is_available=True, category=cat)
-                 .order_by(MenuItem.name)
-                 .all())
-        if items:
-            sections.append({"category": cat, "menu_items": items})
+    try:
+        for cat in category_order:
+            items = (MenuItem.query
+                     .filter_by(is_available=True, category=cat)
+                     .order_by(MenuItem.name)
+                     .all())
+            if items:
+                sections.append({"category": cat, "menu_items": items})
+
+        # Ambil kategori tambahan jika ada yang dibuat via admin
+        other_items = (MenuItem.query
+                       .filter(MenuItem.is_available.is_(True), MenuItem.category.notin_(category_order))
+                       .order_by(MenuItem.name)
+                       .all())
+        if other_items:
+            other_cats = list(dict.fromkeys(i.category for i in other_items))
+            for ocat in other_cats:
+                cat_items = [i for i in other_items if i.category == ocat]
+                sections.append({"category": ocat, "menu_items": cat_items})
+    except Exception as e:
+        db.session.rollback()
+
     return render_template("customer/menu.html", sections=sections)
 
 

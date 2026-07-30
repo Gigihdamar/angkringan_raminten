@@ -19,10 +19,11 @@
 <section class="container py-4">
   <div class="row g-3 justify-content-center">
     {% for section in sections %}
+    {% set cat_info = cat_meta.get(section.category, {'icon': 'makanan', 'label': section.category, 'subtitle': 'Menu khas Angkringan Raminten.'}) %}
     <div class="col-4 col-md-3">
       <a href="#cat-{{ section.category|lower }}" class="category-icon-card menu-cat-link">
-        <img class="cat-icon-img" src="{{ url_for('static', filename='images/categories/' + cat_meta[section.category].icon + '.png') }}" alt="{{ cat_meta[section.category].label }}">
-        <span class="cat-label">{{ cat_meta[section.category].label }}</span>
+        <img class="cat-icon-img" src="{{ url_for('static', filename='images/categories/' + cat_info.icon + '.png') }}" alt="{{ cat_info.label }}">
+        <span class="cat-label">{{ cat_info.label }}</span>
       </a>
     </div>
     {% endfor %}
@@ -30,7 +31,7 @@
 </section>
 
 {% for section in sections %}
-{% set meta = cat_meta[section.category] %}
+{% set meta = cat_meta.get(section.category, {'icon': 'makanan', 'label': section.category, 'subtitle': 'Menu khas Angkringan Raminten.'}) %}
 <section id="cat-{{ section.category|lower }}" class="menu-category-band {{ 'menu-category-band--alt' if loop.index0 is odd }}">
   <div class="container">
     <div class="text-center mb-4">

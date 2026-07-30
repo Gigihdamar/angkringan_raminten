@@ -152,12 +152,11 @@ def api_stats():
 @login_required
 def orders():
     """
-    Hanya menampilkan pesanan yang payment_status-nya 'Lunas'. Selama
-    pembayaran belum dikonfirmasi (simulasi QRIS), pesanan TIDAK boleh
-    masuk ke dashboard pegawai (sesuai requirement laporan UAS).
+    Menampilkan semua pesanan yang dibuat pengunjung (bebas berapapun jumlahnya,
+    baik yang sudah lunas maupun belum dibayar), agar admin dapat mengelola semuanya.
     """
     status_filter = request.args.get("status", "Semua")
-    query = Order.query.filter_by(_payment_status=PAYMENT_LUNAS).order_by(Order.created_at.desc())
+    query = Order.query.order_by(Order.created_at.desc())
     if status_filter != "Semua":
         query = query.filter_by(_status=status_filter)
     order_list = query.all()
@@ -168,10 +167,7 @@ def orders():
 @admin_bp.route("/api/orders")
 @login_required
 def api_orders():
-    order_list = (
-        Order.query.filter_by(_payment_status=PAYMENT_LUNAS)
-        .order_by(Order.created_at.desc()).all()
-    )
+    order_list = Order.query.order_by(Order.created_at.desc()).all()
     return jsonify([o.to_dict() for o in order_list])
 
 
@@ -186,15 +182,9 @@ def order_detail(order_id):
 @login_required
 def order_process(order_id):
     """
-    Route ini secara nyata memakai polymorphism: staff yang sedang login bisa
-    berupa CashierStaff maupun KitchenStaff, tetapi keduanya cukup dipanggil
-    dengan method yang sama, process_order(), dan masing-masing menghasilkan
-    perilaku yang berbeda sesuai class-nya.
+    Staff yang sedang login dapat memproses pesanan apapun secara bebas (Cashier/Kitchen polymorphism).
     """
     order = Order.query.get_or_404(order_id)
-    if not order.is_paid:
-        flash("Pesanan belum dibayar, belum dapat diproses.", "danger")
-        return redirect(url_for("admin.order_detail", order_id=order.id))
     staff = _current_staff()
     if staff:
         message = staff.process_order(order)
@@ -206,26 +196,41 @@ def order_process(order_id):
 @admin_bp.route("/orders/<int:order_id>/status", methods=["POST"])
 @login_required
 def order_update_status(order_id):
+    """
+    Admin/staff bebas mengubah status pesanan ke tahap manapun tanpa dibatasi.
+    """
     order = Order.query.get_or_404(order_id)
-    if not order.is_paid:
-        flash("Status pemesanan belum dapat diubah, pembayaran belum lunas.", "danger")
-        return redirect(request.referrer or url_for("admin.orders"))
     new_status = request.form.get("status")
 
-    current_index = STATUS_FLOW.index(order.status)
-    next_status = STATUS_FLOW[current_index + 1] if current_index + 1 < len(STATUS_FLOW) else None
-
-    if new_status != next_status:
-        flash("Status pesanan harus diubah bertahap, tidak boleh melompati tahap.", "danger")
-        return redirect(request.referrer or url_for("admin.orders"))
-
-    try:
-        order.status = new_status
-        db.session.commit()
-        flash(f"Status pesanan #{order.id} diubah menjadi '{new_status}'.", "success")
-    except ValueError:
-        flash("Status tidak valid.", "danger")
+    if new_status in STATUS_FLOW or new_status:
+        try:
+            order.status = new_status
+            db.session.commit()
+            flash(f"Status pesanan #{order.id} diubah menjadi '{new_status}'.", "success")
+        except Exception:
+            db.session.rollback()
+            flash("Gagal mengubah status.", "danger")
     return redirect(request.referrer or url_for("admin.orders"))
+
+
+@admin_bp.route("/orders/<int:order_id>/payment_status", methods=["POST"])
+@login_required
+def order_toggle_payment(order_id):
+    """
+    Admin bebas mengubah status pembayaran pesanan (Lunas / Belum Dibayar).
+    """
+    order = Order.query.get_or_404(order_id)
+    target_status = request.form.get("payment_status")
+    if target_status in [PAYMENT_LUNAS, PAYMENT_BELUM_DIBAYAR]:
+        if target_status == PAYMENT_LUNAS:
+            order.mark_paid(method=order.payment_method or "Tunai/Kasir")
+            if order.transaction:
+                order.transaction.mark_paid()
+        else:
+            order._payment_status = PAYMENT_BELUM_DIBAYAR
+        db.session.commit()
+        flash(f"Status pembayaran pesanan #{order.id} diubah menjadi '{target_status}'.", "success")
+    return redirect(request.referrer or url_for("admin.order_detail", order_id=order.id))
 
 
 @admin_bp.route("/orders/<int:order_id>/delete", methods=["POST"])

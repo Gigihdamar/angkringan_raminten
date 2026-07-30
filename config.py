@@ -1,35 +1,61 @@
 import os
+import shutil
+import sqlalchemy
 from urllib.parse import quote_plus
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
+def get_database_uri():
+    """
+    Menyediakan URI database secara aman & stabil (Fail-safe System):
+    1. Menggunakan DATABASE_URL jika diset di Vercel Environment Variables.
+    2. Menggunakan MySQL hanya jika diset USE_MYSQL=1 di Environment Variables.
+    3. Default: SQLite (database.db dengan dukungan /tmp Vercel) -> 100% Bebas dari Limit 5 Koneksi
+       Filess.io (Error 1226) yang Menyebabkan Crash 404/500 di Vercel.
+    """
+    if os.environ.get("DATABASE_URL"):
+        return os.environ.get("DATABASE_URL")
+
+    if os.environ.get("USE_MYSQL", "").lower() in ["1", "true", "yes"]:
+        db_user = os.environ.get("DB_USER", "angkringan_pressurein")
+        db_pass = os.environ.get("DB_PASSWORD", "3b5a72170d914772a091f36ea8ba0d0c72376e99")
+        db_host = os.environ.get("DB_HOST", "cpij9v.h.filess.io")
+        db_port = os.environ.get("DB_PORT", "3307")
+        db_name = os.environ.get("DB_NAME", "angkringan_pressurein")
+        return (
+            f"mysql+pymysql://{db_user}:{quote_plus(db_pass)}"
+            f"@{db_host}:{db_port}/{db_name}"
+        )
+
+    sqlite_src = os.path.join(BASE_DIR, "database.db")
+    tmp_dir = "/tmp"
+    if os.path.exists(tmp_dir) and os.access(tmp_dir, os.W_OK):
+        sqlite_dst = os.path.join(tmp_dir, "database.db")
+        if not os.path.exists(sqlite_dst) and os.path.exists(sqlite_src):
+            try:
+                shutil.copy2(sqlite_src, sqlite_dst)
+            except Exception:
+                pass
+        if os.path.exists(sqlite_dst):
+            return f"sqlite:///{sqlite_dst}"
+    return f"sqlite:///{sqlite_src}"
+
+
 class Config:
     """
     Konfigurasi utama aplikasi Angkringan Raminten.
-    Semua pengaturan environment aplikasi diletakkan di sini
-    agar app.py tetap bersih dan mudah dibaca.
     """
     SECRET_KEY = os.environ.get("SECRET_KEY", "angkringan-raminten-secret-key-uas-pbo")
-
-    # ------------------------------------------------------------------
-    # Koneksi Database MySQL (Filess.io).
-    # Nilai default di bawah diambil dari halaman "Connection Information"
-    # Filess.io. Sebaiknya di production nilai ini di-set lewat environment
-    # variable (mis. file .env / Vercel Environment Variables), bukan
-    # ditulis langsung di kode, agar kredensial tidak ikut ter-commit ke Git.
-    # ------------------------------------------------------------------
-    DB_USER = os.environ.get("DB_USER", "angkringan_pressurein")
-    DB_PASSWORD = os.environ.get("DB_PASSWORD", "3b5a72170d914772a091f36ea8ba0d0c72376e99")
-    DB_HOST = os.environ.get("DB_HOST", "cpij9v.h.filess.io")
-    DB_PORT = os.environ.get("DB_PORT", "3307")
-    DB_NAME = os.environ.get("DB_NAME", "angkringan_pressurein")
-
-    SQLALCHEMY_DATABASE_URI = (
-        f"mysql+pymysql://{DB_USER}:{quote_plus(DB_PASSWORD)}"
-        f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    )
+    SQLALCHEMY_DATABASE_URI = get_database_uri()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_size": 2,
+        "max_overflow": 0,
+        "pool_recycle": 60,
+        "pool_timeout": 10,
+        "pool_pre_ping": True,
+    }
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "images", "menu")
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 

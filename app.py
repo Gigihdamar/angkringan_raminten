@@ -25,11 +25,12 @@ def create_app():
 
     @app.errorhandler(500)
     def server_error(e):
-        # Pastikan session yang gagal di-rollback, supaya request
-        # berikutnya di instance yang sama tidak ikut error karena
-        # transaksi lama masih "menggantung".
         db.session.rollback()
-        return render_template("404.html"), 500
+        return render_template("500.html"), 500
+
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        db.session.remove()
 
     @app.context_processor
     def inject_contact():

@@ -35,9 +35,9 @@
         <td>{{ o.customer_name }}</td>
         <td>{{ o.items|length }} item</td>
         <td class="fw-bold">Rp{{ '{:,.0f}'.format(o.total_price) }}</td>
-        <td><span class="badge-status siap">{{ o.payment_status }}</span></td>
+        <td><span class="badge-status {{ 'siap' if o.payment_status == 'Lunas' else 'menunggu' }}">{{ o.payment_status }}</span></td>
         <td>
-          <span class="badge-status {{ {'Menunggu Diproses':'menunggu','Sedang Dibuat':'dibuat','Siap Disajikan':'siap','Selesai':'selesai'}[o.status] }}">
+          <span class="badge-status {{ {'Menunggu Diproses':'menunggu','Sedang Dibuat':'dibuat','Siap Disajikan':'siap','Selesai':'selesai'}.get(o.status, 'menunggu') }}">
             {{ o.status }}
           </span>
         </td>

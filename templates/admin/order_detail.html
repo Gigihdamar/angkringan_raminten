@@ -41,38 +41,32 @@
 
   <div class="col-lg-5">
     <div class="stat-card mb-3">
-      <h6 class="mb-3">Status Pembayaran</h6>
-      <span class="badge-status siap fs-6">{{ order.payment_status }}</span>
+      <h6 class="mb-2">Status Pembayaran</h6>
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="badge-status {{ 'siap' if order.payment_status == 'Lunas' else 'menunggu' }} fs-6">{{ order.payment_status }}</span>
+        <form action="{{ url_for('admin.order_toggle_payment', order_id=order.id) }}" method="POST" class="d-inline">
+          <input type="hidden" name="payment_status" value="{{ 'Belum Dibayar' if order.payment_status == 'Lunas' else 'Lunas' }}">
+          <button type="submit" class="btn btn-sm btn-outline-primary">
+            Ubah ke {{ 'Belum Dibayar' if order.payment_status == 'Lunas' else 'Lunas' }}
+          </button>
+        </form>
+      </div>
       <div class="text-muted small mt-2">
-        Metode: {{ order.payment_method }}
+        Metode: {{ order.payment_method or 'Belum Dipilih' }}
         {% if order.paid_at %} &middot; Dibayar {{ order.paid_at.strftime('%d-%m-%Y %H:%M:%S') }}{% endif %}
       </div>
     </div>
 
     <div class="stat-card mb-3">
-      <h6 class="mb-3">Status Saat Ini</h6>
-      <span class="badge-status {{ {'Menunggu Diproses':'menunggu','Sedang Dibuat':'dibuat','Siap Disajikan':'siap','Selesai':'selesai'}[order.status] }} fs-6">
-        {{ order.status }}
-      </span>
-    </div>
-
-    <div class="stat-card mb-3">
-      <h6 class="mb-3">Ubah Status</h6>
-      {% set current_index = status_flow.index(order.status) %}
-      {% if current_index + 1 < status_flow|length %}
-        {% set next_status = status_flow[current_index + 1] %}
-        <form action="{{ url_for('admin.order_update_status', order_id=order.id) }}" method="POST">
-          <input type="hidden" name="status" value="{{ next_status }}">
-          <button class="btn btn-pesan w-100">
-            <i class="bi bi-arrow-right-circle"></i> Lanjutkan ke "{{ next_status }}"
-          </button>
-        </form>
-        <p class="text-muted small mt-2 mb-0">
-          Status harus diubah bertahap sesuai urutan, tidak bisa melompati tahap.
-        </p>
-      {% else %}
-        <span class="badge-status selesai fs-6">Pesanan sudah Selesai</span>
-      {% endif %}
+      <h6 class="mb-3">Ubah Status Pesanan</h6>
+      <form action="{{ url_for('admin.order_update_status', order_id=order.id) }}" method="POST" class="d-flex gap-2">
+        <select name="status" class="form-select">
+          {% for s in status_flow %}
+          <option value="{{ s }}" {{ 'selected' if order.status == s }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-pesan text-nowrap">Simpan</button>
+      </form>
     </div>
 
     <div class="stat-card">
