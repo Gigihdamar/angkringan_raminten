@@ -1,4 +1,5 @@
 import os
+from urllib.parse import quote_plus
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -10,7 +11,24 @@ class Config:
     agar app.py tetap bersih dan mudah dibaca.
     """
     SECRET_KEY = os.environ.get("SECRET_KEY", "angkringan-raminten-secret-key-uas-pbo")
-    SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(BASE_DIR, "database.db")
+
+    # ------------------------------------------------------------------
+    # Koneksi Database MySQL (Filess.io).
+    # Nilai default di bawah diambil dari halaman "Connection Information"
+    # Filess.io. Sebaiknya di production nilai ini di-set lewat environment
+    # variable (mis. file .env / Vercel Environment Variables), bukan
+    # ditulis langsung di kode, agar kredensial tidak ikut ter-commit ke Git.
+    # ------------------------------------------------------------------
+    DB_USER = os.environ.get("DB_USER", "angkringan_pressurein")
+    DB_PASSWORD = os.environ.get("DB_PASSWORD", "3b5a72170d914772a091f36ea8ba0d0c72376e99")
+    DB_HOST = os.environ.get("DB_HOST", "cpij9v.h.filess.io")
+    DB_PORT = os.environ.get("DB_PORT", "3307")
+    DB_NAME = os.environ.get("DB_NAME", "angkringan_pressurein")
+
+    SQLALCHEMY_DATABASE_URI = (
+        f"mysql+pymysql://{DB_USER}:{quote_plus(DB_PASSWORD)}"
+        f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "images", "menu")
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
