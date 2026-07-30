@@ -2,7 +2,6 @@ from flask import Flask, render_template
 
 from config import Config
 from database import db
-from models import MenuItem, CashierStaff, KitchenStaff, Table
 
 
 def create_app():
@@ -24,6 +23,14 @@ def create_app():
     def not_found(e):
         return render_template("404.html"), 404
 
+    @app.errorhandler(500)
+    def server_error(e):
+        # Pastikan session yang gagal di-rollback, supaya request
+        # berikutnya di instance yang sama tidak ikut error karena
+        # transaksi lama masih "menggantung".
+        db.session.rollback()
+        return render_template("404.html"), 500
+
     @app.context_processor
     def inject_contact():
         """Membuat info kontak/sosial media (config.py) tersedia di semua
@@ -39,55 +46,20 @@ def create_app():
             }
         }
 
-    with app.app_context():
-        db.create_all()
-        seed_data()
+    # ------------------------------------------------------------------
+    # PENTING (Vercel / serverless):
+    # db.create_all() dan seed_data() SENGAJA TIDAK dijalankan otomatis
+    # di sini lagi. Di lingkungan serverless, blok ini akan dieksekusi
+    # ulang setiap kali terjadi "cold start", dan beberapa instance bisa
+    # berjalan bersamaan (paralel) sehingga proses seeding bisa saling
+    # tabrakan (duplicate insert -> IntegrityError -> function crash).
+    #
+    # Jalankan pembuatan tabel & seed data SEKALI SAJA secara manual
+    # lewat file init_db.py (lihat instruksi di file tersebut), baik di
+    # komputer lokal maupun lewat "Run Command" di dashboard Vercel.
+    # ------------------------------------------------------------------
 
     return app
-
-
-def seed_data():
-    """Mengisi data awal (akun pegawai & menu contoh) jika database masih kosong."""
-
-    if CashierStaff.query.count() == 0:
-        cashier = CashierStaff(username="admin", name="Admin Kasir", role="cashier")
-        cashier.set_password("admin123")
-        db.session.add(cashier)
-
-        kitchen = KitchenStaff(username="dapur", name="Pegawai Dapur", role="kitchen")
-        kitchen.set_password("dapur123")
-        db.session.add(kitchen)
-
-    if Table.query.count() == 0:
-        for number in range(1, 11):
-            db.session.add(Table(number=number))
-
-    if MenuItem.query.count() == 0:
-        # (nama, kategori, harga, deskripsi, nama file foto di static/images/menu/)
-        sample_menu = [
-            ("Nasi Kucing Teri", "Makanan", 4000, "Nasi porsi kecil khas angkringan dengan sambal teri.", "nasi-kucing-teri.jpg"),
-            ("Nasi Kucing Oseng Tempe", "Makanan", 4000, "Nasi porsi kecil dengan oseng tempe pedas.", "nasi-kucing-oseng-tempe.jpg"),
-            ("Nasi Kucing Spesial", "Makanan", 5000, "Nasi kucing dengan lauk lebih lengkap dan sambal spesial.", "nasi-kucing-spesial.jpg"),
-            ("Sate Usus", "Makanan", 3000, "Sate usus ayam bumbu kecap, dibakar hangat.", "sate-usus.jpg"),
-            ("Sate Telur Puyuh", "Makanan", 3000, "Sate telur puyuh bumbu bacem.", "sate-telur-puyuh.jpg"),
-            ("Tempe Bacem", "Makanan", 2000, "Tempe bacem manis gurih khas Jogja.", "tempe-bacem.jpg"),
-            ("Wedang Ronde", "Minuman", 8000, "Wedang jahe hangat dengan isian ronde.", "wedang-ronde.jpg"),
-            ("Es Teh Manis", "Minuman", 5000, "Teh manis dingin segar.", "es-teh-manis.jpg"),
-            ("Kopi Hitam", "Minuman", 6000, "Kopi hitam tubruk khas angkringan.", "kopi-hitam.jpg"),
-            ("Wedang Uwuh", "Minuman", 8000, "Minuman rempah hangat khas Jogja.", "wedang-uwuh.jpg"),
-            ("Wedang Jahe", "Minuman", 6000, "Wedang jahe hangat pedas menyegarkan.", "wedang-jahe.jpg"),
-            ("Wedang Tamyet", "Minuman", 7000, "Wedang rempah khas angkringan, hangat di badan.", "wedang-tamyet.jpg"),
-            ("Tahu Susu Goreng", "Cemilan", 3000, "Tahu isi goreng renyah.", "tahu-susu-goreng.jpg"),
-            ("Tempe Mendoan", "Cemilan", 3000, "Tempe mendoan tepung crispy.", "tempe-mendoan.jpg"),
-            ("Kacang Rebus", "Cemilan", 3000, "Kacang tanah rebus gurih.", "kacang-rebus.jpg"),
-            ("Perkedel Halilintar", "Cemilan", 3000, "Perkedel goreng pedas menggelegar.", "perding-halilitar.jpg"),
-        ]
-        for name, category, price, desc, image in sample_menu:
-            item = MenuItem(name=name, category=category, description=desc, image=f"menu/{image}")
-            item.price = price
-            db.session.add(item)
-
-    db.session.commit()
 
 
 app = create_app()
