@@ -191,36 +191,27 @@ def cart_remove(menu_id):
 
 
 # ---------------------------------------------------------------- CHECKOUT
-@customer_bp.route("/checkout", methods=["POST"])
+@customer_bp.route("/checkout", methods=["GET", "POST"])
 def checkout():
-    """
-    Tahap 'Checkout' pada flowchart: validasi keranjang & nomor meja, lalu
-    membuat Order + OrderItem + Transaction dengan payment_status
-    'Belum Dibayar'. Order ini BELUM masuk ke dashboard pegawai sampai
-    pembayaran dikonfirmasi lunas pada tahap simulasi QRIS berikutnya.
-    """
     cart = _get_cart()
     if not cart:
-        flash("Keranjang masih kosong, tidak bisa checkout.", "warning")
+        flash("Keranjang masih kosong, silakan pilih menu terlebih dahulu.", "warning")
         return redirect(url_for("customer.menu"))
 
-    table_number_raw = request.form.get("table_number", "").strip()
-    if not table_number_raw:
-        flash("Nomor meja wajib diisi sebelum checkout.", "warning")
+    if request.method == "GET":
+        last_order_id = session.get("last_order_id")
+        if last_order_id:
+            return redirect(url_for("customer.order_summary", order_id=last_order_id))
         return redirect(url_for("customer.cart"))
 
-    customer_name = request.form.get("customer_name", "").strip()
+    table_number_raw = request.form.get("table_number", "1").strip()
+    try:
+        table_number = int(table_number_raw) if table_number_raw else 1
+    except ValueError:
+        table_number = 1
+
+    customer_name = request.form.get("customer_name", "").strip() or "Pelanggan"
     customer_phone = request.form.get("customer_phone", "").strip()
-
-    if not customer_name:
-        flash("Nama pelanggan wajib diisi sebelum lanjut pembayaran.", "warning")
-        return redirect(url_for("customer.cart"))
-
-    if not customer_phone:
-        flash("Nomor telepon wajib diisi sebelum lanjut pembayaran.", "warning")
-        return redirect(url_for("customer.cart"))
-
-    table_number = int(table_number_raw)
     note = request.form.get("note", "").strip()
 
     table = Table.query.filter_by(number=table_number).first()

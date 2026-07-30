@@ -59,10 +59,14 @@
             </div>
             <div class="flex-grow-1">
               <label class="form-label small fw-semibold text-muted mb-0">Nomor Meja</label>
-              <select name="table_number" form="checkoutForm" class="form-select" required>
-                {% for t in tables %}
-                <option value="{{ t.number }}">Meja {{ t.number }}</option>
-                {% endfor %}
+              <select name="table_number" form="checkoutForm" class="form-select">
+                {% if tables %}
+                  {% for t in tables %}
+                  <option value="{{ t.number }}">Meja {{ t.number }}</option>
+                  {% endfor %}
+                {% else %}
+                  <option value="1" selected>Meja 1</option>
+                {% endif %}
               </select>
             </div>
           </div>
@@ -79,18 +83,18 @@
 
           <form id="checkoutForm" action="{{ url_for('customer.checkout') }}" method="POST">
             <div class="mb-3">
-              <label class="form-label small fw-semibold text-muted">Nama Pelanggan <span class="text-danger">*</span></label>
-              <input type="text" name="customer_name" id="customerNameInput" class="form-control" placeholder="Nama Anda" required>
+              <label class="form-label small fw-semibold text-muted">Nama Pelanggan</label>
+              <input type="text" name="customer_name" id="customerNameInput" class="form-control" placeholder="Nama Anda (opsional)">
             </div>
             <div class="mb-3">
-              <label class="form-label small fw-semibold text-muted">Nomor Telepon <span class="text-danger">*</span></label>
-              <input type="tel" name="customer_phone" id="customerPhoneInput" class="form-control" placeholder="Contoh: 0812-3456-7890" required>
+              <label class="form-label small fw-semibold text-muted">Nomor Telepon</label>
+              <input type="tel" name="customer_phone" id="customerPhoneInput" class="form-control" placeholder="Contoh: 0812-3456-7890 (opsional)">
             </div>
             <div class="mb-3">
               <label class="form-label small fw-semibold text-muted">Catatan</label>
               <textarea name="note" class="form-control" rows="2" placeholder="Contoh: tidak pedas"></textarea>
             </div>
-            <button type="submit" class="btn btn-pesan w-100" id="checkoutSubmitBtn" disabled>
+            <button type="submit" class="btn btn-pesan w-100" id="checkoutSubmitBtn">
               <i class="bi bi-arrow-right-circle"></i> Lanjut Pembayaran
             </button>
           </form>
