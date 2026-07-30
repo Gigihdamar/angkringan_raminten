@@ -269,7 +269,6 @@ def checkout():
 
 @customer_bp.route("/checkout/summary/<int:order_id>")
 def order_summary(order_id):
-    """Tahap 'Ringkasan Pesanan' & 'Hitung Total' pada flowchart."""
     order = Order.query.get_or_404(order_id)
     if order.is_paid:
         return redirect(url_for("customer.receipt", order_id=order.id))
@@ -278,30 +277,28 @@ def order_summary(order_id):
 
 @customer_bp.route("/checkout/payment/<int:order_id>")
 def payment_method(order_id):
-    """Tahap 'Pilih Metode Pembayaran' pada flowchart."""
     order = Order.query.get_or_404(order_id)
     if order.is_paid:
         return redirect(url_for("customer.receipt", order_id=order.id))
     return render_template("customer/payment_method.html", order=order)
 
 
-@customer_bp.route("/checkout/payment/<int:order_id>/qris", methods=["POST"])
+@customer_bp.route("/checkout/payment/<int:order_id>/qris", methods=["GET", "POST"])
 def payment_select_qris(order_id):
-    """
-    Customer memilih QRIS -> sistem membuat objek QRPayment (polymorphism
-    dari Payment) dan menampilkan QR Code simulasi + countdown 5 menit.
-    """
     order = Order.query.get_or_404(order_id)
     if order.is_paid:
         return redirect(url_for("customer.receipt", order_id=order.id))
 
     transaction = order.transaction
-    if transaction is None:
-        flash("Data transaksi tidak ditemukan.", "danger")
-        return redirect(url_for("customer.cart"))
+    if not transaction:
+        transaction = Transaction(order_id=order.id, payment_method="QRIS")
+        transaction.generate_transaction_id()
+        transaction.calculate_total(order)
+        db.session.add(transaction)
+        db.session.flush()
 
     payment = transaction.payment
-    if payment is None or not isinstance(payment, QRPayment):
+    if not payment or not isinstance(payment, QRPayment):
         payment = QRPayment(transaction_id=transaction.id)
         db.session.add(payment)
 
@@ -313,51 +310,56 @@ def payment_select_qris(order_id):
 
 @customer_bp.route("/checkout/qris/<int:order_id>")
 def qris_page(order_id):
-    """Tahap 'Tampilkan QR Code' & 'Scan QR' pada flowchart (simulasi)."""
     order = Order.query.get_or_404(order_id)
     if order.is_paid:
         return redirect(url_for("customer.receipt", order_id=order.id))
 
     transaction = order.transaction
-    payment = transaction.payment if transaction else None
-    if not payment or not isinstance(payment, QRPayment):
-        return redirect(url_for("customer.payment_method", order_id=order.id))
+    if not transaction:
+        transaction = Transaction(order_id=order.id, payment_method="QRIS")
+        transaction.generate_transaction_id()
+        transaction.calculate_total(order)
+        db.session.add(transaction)
+        db.session.flush()
 
-    if payment.is_expired:
-        flash("QR Code sudah kadaluarsa, silakan ulangi pembayaran.", "warning")
-        return redirect(url_for("customer.payment_method", order_id=order.id))
+    payment = transaction.payment
+    if not payment or not isinstance(payment, QRPayment):
+        payment = QRPayment(transaction_id=transaction.id)
+        db.session.add(payment)
+
+    if not payment.qr_data or payment.is_expired:
+        payment.generate_qr(order)
+        db.session.commit()
 
     return render_template("customer/qris.html", order=order, transaction=transaction, payment=payment)
 
 
-@customer_bp.route("/checkout/qris/<int:order_id>/confirm", methods=["POST"])
+@customer_bp.route("/checkout/qris/<int:order_id>/confirm", methods=["GET", "POST"])
 def payment_confirm(order_id):
-    """
-    Tahap 'Konfirmasi Nominal' -> 'Pembayaran Berhasil' pada flowchart.
-    Dipanggil setelah customer menekan 'Saya Sudah Membayar' dan menyetujui
-    popup konfirmasi nominal. Status pembayaran diubah menjadi LUNAS dan
-    pesanan baru saat inilah masuk ke dashboard pegawai.
-    """
     order = Order.query.get_or_404(order_id)
     if order.is_paid:
         return redirect(url_for("customer.receipt", order_id=order.id))
 
     transaction = order.transaction
-    payment = transaction.payment if transaction else None
-    if not payment or not isinstance(payment, QRPayment):
-        flash("Data pembayaran tidak ditemukan.", "danger")
-        return redirect(url_for("customer.payment_method", order_id=order.id))
+    if not transaction:
+        transaction = Transaction(order_id=order.id, payment_method="QRIS")
+        transaction.generate_transaction_id()
+        transaction.calculate_total(order)
+        db.session.add(transaction)
+        db.session.flush()
 
-    if payment.is_expired:
-        flash("QR Code sudah kadaluarsa, silakan ulangi pembayaran.", "warning")
-        return redirect(url_for("customer.payment_method", order_id=order.id))
+    payment = transaction.payment
+    if not payment or not isinstance(payment, QRPayment):
+        payment = QRPayment(transaction_id=transaction.id)
+        db.session.add(payment)
+        payment.generate_qr(order)
 
     payment.confirm()
     transaction.mark_paid()
     order.mark_paid(method="QRIS")
     db.session.commit()
 
-    flash("Pembayaran berhasil! Pesanan Anda sudah diteruskan ke dapur.", "success")
+    flash("Pembayaran berhasil! Pesanan Anda telah diteruskan ke dapur.", "success")
     return redirect(url_for("customer.receipt", order_id=order.id))
 
 
