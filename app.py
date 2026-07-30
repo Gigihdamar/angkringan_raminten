@@ -65,22 +65,22 @@ def seed_data():
     if MenuItem.query.count() == 0:
         # (nama, kategori, harga, deskripsi, nama file foto di static/images/menu/)
         sample_menu = [
-            ("Nasi Kucing Teri", "Makanan", 4000, "Nasi porsi kecil khas angkringan dengan sambal teri.", "nasi kucing teri.jpg"),
-            ("Nasi Kucing Oseng Tempe", "Makanan", 4000, "Nasi porsi kecil dengan oseng tempe pedas.", "nasi kucing oseng tempe.jpg"),
-            ("Nasi Kucing Spesial", "Makanan", 5000, "Nasi kucing dengan lauk lebih lengkap dan sambal spesial.", "nasi kucing spesial.jpg"),
-            ("Sate Usus", "Makanan", 3000, "Sate usus ayam bumbu kecap, dibakar hangat.", "sate usus.jpg"),
-            ("Sate Telur Puyuh", "Makanan", 3000, "Sate telur puyuh bumbu bacem.", "sate telur puyuh.jpg"),
-            ("Tempe Bacem", "Makanan", 2000, "Tempe bacem manis gurih khas Jogja.", "tempe bacem.jpg"),
-            ("Wedang Ronde", "Minuman", 8000, "Wedang jahe hangat dengan isian ronde.", "wedang ronde.jpg"),
-            ("Es Teh Manis", "Minuman", 5000, "Teh manis dingin segar.", "es teh manis.jpg"),
-            ("Kopi Hitam", "Minuman", 6000, "Kopi hitam tubruk khas angkringan.", "kopi hitam.jpg"),
-            ("Wedang Uwuh", "Minuman", 8000, "Minuman rempah hangat khas Jogja.", "wedang uwuh.jpg"),
-            ("Wedang Jahe", "Minuman", 6000, "Wedang jahe hangat pedas menyegarkan.", "wedang jahe.jpg"),
-            ("Wedang Tamyet", "Minuman", 7000, "Wedang rempah khas angkringan, hangat di badan.", "wedang tamyet.jpg"),
-            ("Tahu Susu Goreng", "Cemilan", 3000, "Tahu isi goreng renyah.", "tahu susu goreng.jpg"),
-            ("Tempe Mendoan", "Cemilan", 3000, "Tempe mendoan tepung crispy.", "tempe mendoan.jpg"),
-            ("Kacang Rebus", "Cemilan", 3000, "Kacang tanah rebus gurih.", "kacang rebus.jpg"),
-            ("Perkedel Halilintar", "Cemilan", 3000, "Perkedel goreng pedas menggelegar.", "perding halilitar.jpg"),
+            ("Nasi Kucing Teri", "Makanan", 4000, "Nasi porsi kecil khas angkringan dengan sambal teri.", "nasi-kucing-teri.jpg"),
+            ("Nasi Kucing Oseng Tempe", "Makanan", 4000, "Nasi porsi kecil dengan oseng tempe pedas.", "nasi-kucing-oseng-tempe.jpg"),
+            ("Nasi Kucing Spesial", "Makanan", 5000, "Nasi kucing dengan lauk lebih lengkap dan sambal spesial.", "nasi-kucing-spesial.jpg"),
+            ("Sate Usus", "Makanan", 3000, "Sate usus ayam bumbu kecap, dibakar hangat.", "sate-usus.jpg"),
+            ("Sate Telur Puyuh", "Makanan", 3000, "Sate telur puyuh bumbu bacem.", "sate-telur-puyuh.jpg"),
+            ("Tempe Bacem", "Makanan", 2000, "Tempe bacem manis gurih khas Jogja.", "tempe-bacem.jpg"),
+            ("Wedang Ronde", "Minuman", 8000, "Wedang jahe hangat dengan isian ronde.", "wedang-ronde.jpg"),
+            ("Es Teh Manis", "Minuman", 5000, "Teh manis dingin segar.", "es-teh-manis.jpg"),
+            ("Kopi Hitam", "Minuman", 6000, "Kopi hitam tubruk khas angkringan.", "kopi-hitam.jpg"),
+            ("Wedang Uwuh", "Minuman", 8000, "Minuman rempah hangat khas Jogja.", "wedang-uwuh.jpg"),
+            ("Wedang Jahe", "Minuman", 6000, "Wedang jahe hangat pedas menyegarkan.", "wedang-jahe.jpg"),
+            ("Wedang Tamyet", "Minuman", 7000, "Wedang rempah khas angkringan, hangat di badan.", "wedang-tamyet.jpg"),
+            ("Tahu Susu Goreng", "Cemilan", 3000, "Tahu isi goreng renyah.", "tahu-susu-goreng.jpg"),
+            ("Tempe Mendoan", "Cemilan", 3000, "Tempe mendoan tepung crispy.", "tempe-mendoan.jpg"),
+            ("Kacang Rebus", "Cemilan", 3000, "Kacang tanah rebus gurih.", "kacang-rebus.jpg"),
+            ("Perkedel Halilintar", "Cemilan", 3000, "Perkedel goreng pedas menggelegar.", "perding-halilitar.jpg"),
         ]
         for name, category, price, desc, image in sample_menu:
             item = MenuItem(name=name, category=category, description=desc, image=f"menu/{image}")
